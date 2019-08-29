@@ -1,6 +1,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Versions.Exceptions;
 using Versions.Models;
 
 namespace Versions.Managers 
@@ -62,11 +64,12 @@ namespace Versions.Managers
         public static IEnumerable<Software> GetNewerSoftware(string versionStr) 
         {
             // define in a single place, easier to update if we add software that has more than three parts
-            const int verionPartCount = 3; 
+            const int versionPartCount = 3; 
 
             var software = GetAllSoftware();
             var newerSoftware = new List<Software>();
 
+            // keeping local for now, may need to be in a more reusable place in the future
             Func<string, IList<int>> getVersion = delegate(string ver) 
             {
                 // account for when version starts with a period
@@ -91,12 +94,12 @@ namespace Versions.Managers
                     }
                     else 
                     {
-                        throw new Exception("Invalid version");
+                        throw new InvalidSoftwareVersionException($"Invalid version: {ver}");
                     }
                 }
 
                 // filling out parts user didn't enter to make comparison easier
-                while (intParts.Count < verionPartCount) {
+                while (intParts.Count < versionPartCount) {
                     intParts.Add(0);
                 }
 
@@ -106,17 +109,34 @@ namespace Versions.Managers
             var version = getVersion(versionStr);
             
             foreach(var item in software) {
-                var softwareVersion = getVersion(item.Version);
+                var softwareVersion = new List<int>();
+                try 
+                {
+                    softwareVersion = getVersion(item.Version).ToList();
+                }
+                catch 
+                {
+                    // no op for now, bad data was entered, let's just show the user the data we can parse
+                    // would log this error
+                    continue; 
+                }
 
-                var isOlder = false; 
-                for (var i = 0; i < verionPartCount; i++) {
-                    if (version[i] > softwareVersion[i]) {
-                        isOlder = true; 
+                var isSoftwareNewer = false; 
+                for (var i = 0; i < versionPartCount; i++) {
+                    // check to see if it is newer AND older
+                    // break out either way
+                    // only compare next version number if they are equal
+                    if (version[i] < softwareVersion[i]) {
+                        isSoftwareNewer = true; 
+                        break;
+                    } 
+                    else if (version[i] > softwareVersion[i]) 
+                    {
                         break;
                     }
                 }
 
-                if (!isOlder) {
+                if (isSoftwareNewer) {
                     newerSoftware.Add(item);
                 }
             }
