@@ -8,4 +8,4 @@ Commands:
 - dotnet build
 - dotnet run
 
-The app will automatically open on [localhost](https://localhost:5001) on port 5001. 
+The app will run on [localhost](https://localhost:5001) on port 5001. 
